@@ -191,13 +191,4 @@ Python is essential for running AI scripts and additional utilities.
 
 - **Web page does not load**: Confirm that Apache is running (`sudo systemctl status apache2`), and check that the HTML file is correctly placed in `/var/www/html/`.
 - **ROS connection fails**: Verify that the WebSocket server is active and that the IP address in your HTML file is correct.
-
-## Contributions
-
-We welcome contributions! Fork this repository, make your changes, and submit a pull request.
-
-## License
-
-Include the license for your project here (MIT, GPL, Apache 2.0, etc.).
-
 ---
