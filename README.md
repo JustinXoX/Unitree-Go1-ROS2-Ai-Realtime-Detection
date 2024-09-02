@@ -8,7 +8,7 @@ This project provides a comprehensive simulation setup for the Unitree GO1 robot
 
 Before you begin, ensure you have the following software installed:
 
-- **ROS 2** (Foxy or later version): A popular middleware framework for robot software development.
+- **ROS 2** (Humble or later version): A popular middleware framework for robot software development.
 - **Gazebo** (Version 11 recommended): A 3D robotics simulator used to visualize and simulate the robot environment.
 - **Unitree robot software and dependencies**: Required to interact with and control the GO1 robot.
 - **Python 3.x and necessary libraries**: Used for AI detection scripts and other utilities.
