@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROS2 Robot Control Panel</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/roslibjs/1.0.1/roslib.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e1e;
+            color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        h1 {
+            color: #ffffff;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        #control-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #2c2c2c;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .direction-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, auto);
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 40px; /* 增加与导航按钮的距离 */
+        }
+        button {
+            width: 100px; /* 固定按钮宽度 */
+            height: 50px; /* 固定按钮高度 */
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #stop-button {
+            background-color: #dc3545;
+        }
+        #stop-button:hover {
+            background-color: #c82333;
+        }
+        #nav-button {
+            background-color: #007bff;
+            margin-top: 30px; /* 设置与前面按钮的额外距离 */
+            width: 180px; /* 固定按钮宽度 */
+            height: 50px; /* 固定按钮高度 */
+        }
+        #nav-button:hover {
+            background-color: #0056b3;
+        }
+        #speed-control {
+            margin-bottom: 20px; /* 与按钮保持距离 */
+            color: #f4f4f4;
+            text-align: center;
+        }
+        #speed-range {
+            width: 200px;
+            margin-top: 10px;
+        }
+        #status {
+            color: #00ff00;
+            font-weight: bold;
+            margin-top: 20px;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>ROS2 Robot Control Panel</h1>
+    
+    <div id="control-panel">
+        <!-- 速度滑块控制 -->
+        <div id="speed-control">
+            <label for="speed-range">Speed: <span id="speed-value">1.0</span> m/s</label>
+            <input type="range" id="speed-range" min="0.1" max="2.0" step="0.1" value="1.0" oninput="updateSpeed(this.value)">
+        </div>
+        <div class="direction-buttons">
+            <div></div>
+            <button onclick="toggleDirection('forward')">Forward</button>
+            <div></div>
+            <button onclick="toggleDirection('left')">Left</button>
+            <button id="stop-button" onclick="stopRobot()">Stop</button>
+            <button onclick="toggleDirection('right')">Right</button>
+            <div></div>
+            <button onclick="toggleDirection('backward')">Backward</button>
+            <div></div>
+        </div>
+        <button id="nav-button" onclick="setNavigationGoal()">Set Navigation Goal</button>
+    </div>
+
+    <p id="status">State: Connecting to ROS...</p>
+
+    <script>
+        var ros = new ROSLIB.Ros({
+            url: 'ws://192.168.3.203:9090' // Change this to your ROS 2 WebSocket server IP address
+        });
+
+        ros.on('connection', function() {
+            document.getElementById('status').innerText = 'State: Connected to ROS';
+            document.getElementById('status').style.color = '#00ff00';
+        });
+
+        ros.on('error', function(error) {
+            document.getElementById('status').innerText = 'State: Error connecting to ROS';
+            document.getElementById('status').style.color = '#ff0000';
+        });
+
+        ros.on('close', function() {
+            document.getElementById('status').innerText = 'State: Connection to ROS closed';
+            document.getElementById('status').style.color = '#ff0000';
+        });
+
+        var linearSpeed = 1.0;
+        var angularSpeed = 1.0;
+
+        function updateSpeed(value) {
+            linearSpeed = parseFloat(value);
+            document.getElementById('speed-value').innerText = value;
+        }
+
+        function toggleDirection(direction) {
+            var cmdVel = new ROSLIB.Topic({
+                ros: ros,
+                name: '/cmd_vel',
+                messageType: 'geometry_msgs/Twist'
+            });
+
+            var twist;
+            if (direction === 'forward') {
+                twist = new ROSLIB.Message({
+                    linear: { x: linearSpeed, y: 0.0, z: 0.0 },
+                    angular: { x: 0.0, y: 0.0, z: 0.0 }
+                });
+            } else if (direction === 'backward') {
+                twist = new ROSLIB.Message({
+                    linear: { x: -linearSpeed, y: 0.0, z: 0.0 },
+                    angular: { x: 0.0, y: 0.0, z: 0.0 }
+                });
+            } else if (direction === 'left') {
+                twist = new ROSLIB.Message({
+                    linear: { x: 0.0, y: 0.0, z: 0.0 },
+                    angular: { x: 0.0, y: 0.0, z: angularSpeed }
+                });
+            } else if (direction === 'right') {
+                twist = new ROSLIB.Message({
+                    linear: { x: 0.0, y: 0.0, z: 0.0 },
+                    angular: { x: 0.0, y: 0.0, z: -angularSpeed }
+                });
+            }
+
+            cmdVel.publish(twist);
+        }
+
+        function stopRobot() {
+            var cmdVel = new ROSLIB.Topic({
+                ros: ros,
+                name: '/cmd_vel',
+                messageType: 'geometry_msgs/Twist'
+            });
+
+            var twist = new ROSLIB.Message({
+                linear: { x: 0.0, y: 0.0, z: 0.0 },
+                angular: { x: 0.0, y: 0.0, z: 0.0 }
+            });
+
+            cmdVel.publish(twist);
+        }
+
+        function setNavigationGoal() {
+            var goalTopic = new ROSLIB.Topic({
+                ros: ros,
+                name: '/goal_pose',
+                messageType: 'geometry_msgs/PoseStamped'
+            });
+
+            var goal = new ROSLIB.Message({
+                header: {
+                    frame_id: 'map',
+                    stamp: { secs: 0, nsecs: 0 }
+                },
+                pose: {
+                    position: { x: 1.0, y: 1.0, z: 0.0 },
+                    orientation: { x: 0.0, y: 0.0, z: 0.0, w: 1.0 }
+                }
+            });
+
+            goalTopic.publish(goal);
+            alert("Navigation goal sent to position (1.0, 1.0).");
+        }
+    </script>
+</body>
+</html>
