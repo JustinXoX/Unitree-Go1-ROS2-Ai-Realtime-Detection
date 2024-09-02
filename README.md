@@ -1,58 +1,61 @@
-# Unitree-Go1-ROS2-Ai-Realtime-Detection
- 
+# Unitree-Go1-ROS2-AI-Realtime-Detection
+
 ## Project Overview
 
-This project provides a comprehensive simulation setup for the Unitree GO1 robot using ROS 2 and Gazebo. It covers launching simulations, activating robot control interfaces, running navigation stacks with visualization in RViz, and real-time violation detection using AI.
+This project provides a comprehensive simulation setup for the Unitree GO1 robot using ROS 2 and Gazebo. It covers launching simulations, activating robot control interfaces, running navigation stacks with visualization in RViz, real-time violation detection using AI, and a web-based control panel for managing the robot.
 
 ## Prerequisites
 
 Before you begin, ensure you have the following software installed:
 
-- **ROS 2** (Humble or later version): A popular middleware framework for robot software development.
+- **ROS 2 Humble**: The latest LTS version of ROS 2, providing robust middleware support for robotics applications.
 - **Gazebo** (Version 11 recommended): A 3D robotics simulator used to visualize and simulate the robot environment.
-- **Unitree robot software and dependencies**: Required to interact with and control the GO1 robot.
+- **Unitree robot software and dependencies**: Specific software required to interact with and control the GO1 robot.
 - **Python 3.x and necessary libraries**: Used for AI detection scripts and other utilities.
+- **Apache Web Server**: Used to host the HTML-based control panel.
+- **rosbridge_server**: A ROS package that provides a JSON API to ROS functionality for communication over WebSocket.
 
 ## Installation Guide
 
 Follow these steps to set up the project environment:
 
-### Step 1: Install ROS 2
+### Step 1: Install ROS 2 Humble
 
-1. **Update your system**: Before installing ROS 2, ensure your system is up-to-date.
+1. **Update your system**:
+   Ensure your system is up-to-date to avoid compatibility issues.
    ```bash
    sudo apt update && sudo apt upgrade -y
    ```
 
-2. **Add the ROS 2 repository to your sources list**:
+2. **Add the ROS 2 repository and install ROS 2 Humble**:
    ```bash
    sudo apt install software-properties-common
    sudo add-apt-repository universe
    sudo apt update && sudo apt install curl -y
-   curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
+   sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+   echo "deb [signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+   sudo apt update
+   sudo apt install ros-humble-desktop
    ```
 
-3. **Install ROS 2 Foxy**:
+3. **Source the ROS 2 environment**:
+   Add ROS 2 environment setup to your shell configuration to enable ROS commands in your terminal.
    ```bash
-   sudo apt install ros-foxy-desktop
-   ```
-
-4. **Source the ROS 2 environment**: To use ROS 2 commands and packages, source the setup file in your `.bashrc`:
-   ```bash
-   echo "source /opt/ros/foxy/setup.bash" >> ~/.bashrc
+   echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
    source ~/.bashrc
    ```
 
 ### Step 2: Install Gazebo
 
 1. **Install Gazebo 11**:
+   Gazebo is required for simulating the robot in a 3D environment.
    ```bash
    sudo apt install gazebo11
-   sudo apt install ros-foxy-gazebo-ros-pkgs
+   sudo apt install ros-humble-gazebo-ros-pkgs
    ```
 
 2. **Verify the installation**:
-   Open a terminal and type `gazebo` to ensure Gazebo opens correctly. Close the simulator once verified.
+   Open a terminal and type `gazebo` to ensure Gazebo launches correctly.
 
 ### Step 3: Set Up the Unitree Robot Software and Dependencies
 
@@ -63,27 +66,32 @@ Follow these steps to set up the project environment:
    ```
 
 2. **Install ROS dependencies**:
-   Use `rosdep` to install all the required dependencies for the ROS 2 packages in your project.
+   The `rosdep` tool installs the required ROS packages specified by the project, ensuring that all dependencies are correctly set up.
    ```bash
    rosdep update
    rosdep install --from-paths src --ignore-src -r -y
    ```
 
 3. **Build the ROS 2 workspace**:
-   Use `colcon`, the recommended build tool for ROS 2, to build your workspace.
+   Use `colcon`, the recommended build tool for ROS 2, to compile the project packages. `--symlink-install` creates symlinks instead of copying files, which helps during development.
    ```bash
    colcon build --symlink-install
    ```
 
 ### Step 4: Install Python and Necessary Libraries
 
+Python is essential for running AI scripts and additional utilities.
+
 1. **Ensure Python 3.x is installed**:
    ```bash
    sudo apt install python3 python3-pip
    ```
 
-2. **Install required Python libraries for AI detection**:
-   Use `pip` to install necessary Python libraries, such as `opencv-python` and `requests`:
+2. **Install required Python libraries**:
+   - **opencv-python**: Used for computer vision tasks, such as image processing and real-time object detection.
+   - **requests**: A simple HTTP library for making requests to web services, often used in machine learning projects for fetching models or data.
+   
+   Install these libraries using pip:
    ```bash
    pip3 install opencv-python requests
    ```
@@ -91,71 +99,105 @@ Follow these steps to set up the project environment:
 ### Step 5: Configure AI Detection Environment
 
 1. **Set the `ROBOFLOW_API_KEY` environment variable**:
-   The AI detection script requires an API key from Roboflow. Set this environment variable with your API key.
-
-   For Linux and macOS:
+   This environment variable is used by the AI detection script to authenticate API requests to Roboflow, a machine learning platform for computer vision.
    ```bash
    export ROBOFLOW_API_KEY="YourAPIKey"
    ```
 
-   For Windows PowerShell:
+### Step 6: Install and Configure Apache Web Server
+
+1. **Install Apache**:
+   Apache is used to host the HTML file for the robot control panel, making it accessible through a web browser.
    ```bash
-   $env:ROBOFLOW_API_KEY="YourAPIKey"
+   sudo apt install apache2
    ```
 
-   Replace `YourAPIKey` with your actual Roboflow API key.
+2. **Start and enable Apache**:
+   Ensure Apache runs automatically on boot and is currently active.
+   ```bash
+   sudo systemctl start apache2
+   sudo systemctl enable apache2
+   ```
 
-### Step 6: Running the Simulation and Control
+3. **Edit the HTML file**:
+   The control panel HTML file should be placed in the Apache root directory (`/var/www/html/`). Modify the file using a text editor:
+   ```bash
+   sudo gedit /var/www/html/index.html
+   ```
+
+4. **Modify the IP address in the HTML**:
+   Update the line in your HTML file that specifies the connection to the ROS server. Change the IP to match your ROS 2 WebSocket server’s IP address.
+   ```html
+   var ros = new ROSLIB.Ros({
+       url: 'ws://192.168.3.203:9090'  // Update this IP address to your ROS 2 server's IP address
+   });
+   ```
+
+### Step 7: Launch ROS 2 Components
 
 1. **Launch the Gazebo Simulation**:
-   Open a new terminal and run:
+   Start the simulation environment in a new terminal window:
    ```bash
    ros2 launch go1_gazebo spawn_go1.launch.py
    ```
-   This command initializes the Gazebo simulation environment with the GO1 robot.
 
 2. **Activate the Robot Control Interface**:
-   In a second terminal window, activate the robot control interface by running:
+   In another terminal window, start the robot control interface to manage the GO1 robot's states:
    ```bash
    ros2 run unitree_guide2 junior_ctrl
    ```
-   Make sure the controllers are fully loaded in Gazebo before running this command.
 
 3. **Start the Navigation Stack**:
-   In a third terminal window, launch the navigation stack to enable autonomous navigation:
+   Initialize the navigation stack to allow autonomous navigation:
    ```bash
    ros2 launch go1_navigation navigation_new.launch.py
    ```
 
-### Step 7: Run AI Detection Script
+4. **Launch the ROS 2 WebSocket Server**:
+   Start `rosbridge_server` to enable WebSocket communication between ROS 2 and the web-based control panel:
+   ```bash
+   ros2 launch rosbridge_server rosbridge_websocket_launch.xml
+   ```
 
-1. **Ensure the environment variable is set correctly**:
-   Before running the AI detection script, confirm the `ROBOFLOW_API_KEY` is set by typing `echo $ROBOFLOW_API_KEY` (Linux/macOS) or `$env:ROBOFLOW_API_KEY` (Windows PowerShell).
+### Step 8: Using the Web-Based Control Panel
+
+1. **Access the Control Panel**:
+   Open a web browser and go to `http://localhost` or the IP address of your Apache server if accessed remotely.
+
+2. **Control the Robot**:
+   Use the control panel buttons to send commands to the robot, such as moving forward, backward, left, or right.
+
+3. **Adjust Speed and Set Navigation Goals**:
+   Adjust the robot's speed using the slider and set navigation goals by clicking the "Set Navigation Goal" button.
+
+4. **Stop the Robot**:
+   Press the "Stop" button to immediately halt the robot’s movements.
+
+### Step 9: Run AI Detection Script
+
+1. **Verify the environment variable**:
+   Make sure `ROBOFLOW_API_KEY` is correctly set:
+   ```bash
+   echo $ROBOFLOW_API_KEY
+   ```
 
 2. **Run the AI detection script**:
+   Execute the script that uses the AI camera to detect violations in real-time:
    ```bash
    python3 /path/to/AiDetection.py
    ```
-   Replace `/path/to/` with the actual path where your `AiDetection.py` script is located.
 
-### Final Check
+### Troubleshooting and Tips
 
-1. **Verify that all components are working**:
-   - The Gazebo simulator should display the GO1 robot.
-   - The control interface should respond to commands.
-   - The navigation stack should be active in RViz.
-   - The AI detection script should detect actions in real-time.
-
-2. **Troubleshooting**:
-   - If any component fails, check for error messages in the terminal and ensure all dependencies and software are correctly installed.
+- **Web page does not load**: Confirm that Apache is running (`sudo systemctl status apache2`), and check that the HTML file is correctly placed in `/var/www/html/`.
+- **ROS connection fails**: Verify that the WebSocket server is active and that the IP address in your HTML file is correct.
 
 ## Contributions
 
-We welcome contributions! Please fork this repository, make your changes, and submit a pull request with improvements or enhancements.
+We welcome contributions! Fork this repository, make your changes, and submit a pull request.
 
 ## License
 
-Specify the license that applies to your project here. Common open-source licenses include MIT, GPL, or Apache 2.0.
+Include the license for your project here (MIT, GPL, Apache 2.0, etc.).
 
 ---
-
